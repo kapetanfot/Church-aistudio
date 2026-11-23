@@ -59,11 +59,12 @@ export function renderCompositeToCanvas(
   const ctx = targetCanvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return;
 
-  // Base diptych (retains upper 3 scenes, ornate borders, outer frame)
+  // Capture original diptych for clean flanking kiones extraction, then draw swappedBaseImg (retains updated upper 3 scenes, ornate borders, outer frame)
   ctx.drawImage(diptychImg, 0, 0, W, H);
+  const origDiptych = new Uint8ClampedArray(ctx.getImageData(0, 0, W, H).data);
+  ctx.drawImage(swappedBaseImg, 0, 0, W, H);
   const outImgData = ctx.getImageData(0, 0, W, H);
   const out = outImgData.data;
-  const origDiptych = new Uint8ClampedArray(out);
 
   // Extract lower interior panel (y=336..784 -> 449px tall) from swappedBaseImg
   const panelH = 449;

@@ -26,6 +26,7 @@ import {
 
 const SAINTS_SRC = '/assets/aistudio/saints_450d968e.webp';
 const DIPTYCH_SRC = '/assets/aistudio/leave-only-two-kiones_47e2e67d.jpg';
+const TOP_SCENES_SRC = '/assets/aistudio/image_715ac347_21f298fc.jpg';
 const PREBUILT_COMPOSITE_SRC = '/assets/swapped-icon.png';
 const PRINT_MASTER_3X_SRC = '/assets/print-master-3x.jpg';
 
@@ -385,9 +386,22 @@ export default function App() {
               )}
 
               {viewMode === 'sources' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#1C1917] p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#1C1917] p-4">
                   <div className="space-y-2">
-                    <div className="aspect-[16/9] overflow-hidden bg-[#0D1117]">
+                    <div className="aspect-[16/10] overflow-hidden bg-[#0D1117]">
+                      <img
+                        src={TOP_SCENES_SRC}
+                        alt="Source plate supplying the upper three scenes"
+                        referrerPolicy="no-referrer"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <p className="text-xs text-[#D6D3D1] font-mono tabular-nums">
+                      top scenes · 1312 × 810 px
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="aspect-[16/10] overflow-hidden bg-[#0D1117]">
                       <img
                         src={SAINTS_SRC}
                         alt="Original saints.webp featuring nine standing saints"
@@ -403,7 +417,7 @@ export default function App() {
                     <div className="aspect-[16/10] overflow-hidden bg-[#0D1117]">
                       <img
                         src={DIPTYCH_SRC}
-                        alt="Original second diptych plate with three upper scenes and two flanking columns"
+                        alt="Original second diptych plate with two flanking columns"
                         referrerPolicy="no-referrer"
                         className="h-full w-full object-contain"
                       />
@@ -923,19 +937,36 @@ export default function App() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <figure className="border border-[#DFD8CA] bg-[#F7F4EE] p-4">
-              <div className="aspect-[16/9] overflow-hidden bg-[#1C1917]">
+              <div className="aspect-[16/10] overflow-hidden bg-[#1C1917]">
                 <img
-                  src={SAINTS_SRC}
-                  alt="Source Plate I: Nine standing saints"
+                  src={TOP_SCENES_SRC}
+                  alt="Source Plate I: Replacement upper scenes"
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-contain"
                 />
               </div>
               <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-[#57534E]">
                 <span className="font-serif italic">
-                  Fig. 2 — Plate I: Nine Standing Saints (saints.webp)
+                  Fig. 2 — Plate I: Upper Scenes Source
+                </span>
+                <span className="font-mono tabular-nums shrink-0">1312 × 810 px</span>
+              </figcaption>
+            </figure>
+
+            <figure className="border border-[#DFD8CA] bg-[#F7F4EE] p-4">
+              <div className="aspect-[16/10] overflow-hidden bg-[#1C1917]">
+                <img
+                  src={SAINTS_SRC}
+                  alt="Source Plate II: Nine standing saints"
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-[#57534E]">
+                <span className="font-serif italic">
+                  Fig. 3 — Plate II: Nine Standing Saints (saints.webp)
                 </span>
                 <span className="font-mono tabular-nums shrink-0">2048 × 1144 px</span>
               </figcaption>
@@ -945,14 +976,14 @@ export default function App() {
               <div className="aspect-[16/10] overflow-hidden bg-[#1C1917]">
                 <img
                   src={DIPTYCH_SRC}
-                  alt="Source Plate II: Two-tier diptych with upper scenes and flanking columns"
+                  alt="Source Plate III: Diptych frame with two flanking columns"
                   referrerPolicy="no-referrer"
                   className="h-full w-full object-contain"
                 />
               </div>
               <figcaption className="mt-3 flex items-center justify-between gap-4 text-xs text-[#57534E]">
                 <span className="font-serif italic">
-                  Fig. 3 — Plate II: Original Diptych with Two Kiones
+                  Fig. 4 — Plate III: Frame &amp; Two Kiones
                 </span>
                 <span className="font-mono tabular-nums shrink-0">1296 × 800 px</span>
               </figcaption>
