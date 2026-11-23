@@ -907,7 +907,7 @@ export default function App() {
                 <dt className="font-medium text-[#57534E]">Swapped Lower Register</dt>
                 <dd className="text-[#1C1917]">
                   Nine standing hierarchs split around the central opening: St. Basil holds the
-                  inverted Greek scroll (<span className="font-mono text-xs">ΣΥΓΓΕΝΕΙΣ, ΑΔ:</span>)
+                  inverted Greek scroll (<span className="font-mono text-xs">ΣΥΓΓΕΝΕΙΣ, ΑΔ∴</span>)
                   and St. John Chrysostom holds the Gospel Bible.
                 </dd>
               </div>
