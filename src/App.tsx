@@ -120,10 +120,9 @@ export default function App() {
     setIsExporting(true);
     setPrintError(null);
     try {
-      const baseImg =
-        usingDefault && sourceImages?.printMaster
-          ? sourceImages.printMaster
-          : await loadImage(activeCompositeSrc);
+      const baseImg = usingDefault
+        ? sourceImages?.printMaster || (await loadImage(PRINT_MASTER_3X_SRC).catch(() => loadImage(activeCompositeSrc)))
+        : await loadImage(activeCompositeSrc);
 
       const indices =
         typeof singlePanelIndex === 'number'
@@ -131,15 +130,19 @@ export default function App() {
           : Array.from({ length: printConfig.panelCount }, (_, i) => i);
 
       for (const idx of indices) {
-        setPrintStatus(
+        const prefix =
           printConfig.panelCount > 1
-            ? `Rendering panel ${idx + 1} of ${printConfig.panelCount}...`
-            : `Rendering ${printDims.totalWidthPx.toLocaleString()} × ${printDims.totalHeightPx.toLocaleString()} px...`
-        );
-        // Yield a frame so status renders smoothly before heavy canvas encoding
+            ? `Rendering panel ${idx + 1} of ${printConfig.panelCount}`
+            : `Rendering ${printDims.totalWidthPx.toLocaleString()} × ${printDims.totalHeightPx.toLocaleString()} px (${printConfig.dpi} DPI)`;
+        setPrintStatus(`${prefix}...`);
+        // Yield a frame so status renders smoothly before heavy encoding
         await new Promise((r) => setTimeout(r, 30));
 
-        const res = await exportPrintSheet(baseImg, printConfig, idx);
+        const res = await exportPrintSheet(baseImg, printConfig, idx, null, (pct) => {
+          if (pct < 100) {
+            setPrintStatus(`${prefix}: ${pct}%`);
+          }
+        });
         triggerBlobDownload(res.blob, res.filename);
       }
       setPrintStatus(
@@ -156,12 +159,16 @@ export default function App() {
   const handleDpiChange = (dpi: PrintDpi) => {
     setPrintError(null);
     setPrintStatus(null);
-    setPrintConfig((c) => ({
-      ...c,
-      dpi,
-      // Auto-switch to 3 panels if 150 DPI exceeds 16,384 px single-canvas limit
-      panelCount: dpi === 150 && c.panelCount === 1 ? 3 : c.panelCount,
-    }));
+    setPrintConfig((c) => {
+      // If user is on PNG and chooses 300 DPI, automatically ensure 8 Panels (4x2) or switch 150 DPI -> JPEG/3 panels
+      if (dpi === 300 && c.format === 'png' && c.panelCount !== 8) {
+        return { ...c, dpi, panelCount: 8 };
+      }
+      if (dpi === 150 && c.format === 'png' && c.panelCount === 1) {
+        return { ...c, dpi, panelCount: 3 };
+      }
+      return { ...c, dpi };
+    });
   };
 
   const handleZoomIn = () => setZoom((z) => Math.min(3, Number((z + 0.5).toFixed(2))));
@@ -478,13 +485,13 @@ export default function App() {
                       {printConfig.dpi} DPI
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-1 rounded-md border border-[#DFD8CA] bg-[#EFECE4] p-1">
-                    {([72, 100, 150] as PrintDpi[]).map((dpi) => (
+                  <div className="grid grid-cols-4 gap-1 rounded-md border border-[#DFD8CA] bg-[#EFECE4] p-1">
+                    {([72, 100, 150, 300] as PrintDpi[]).map((dpi) => (
                       <button
                         key={dpi}
                         type="button"
                         onClick={() => handleDpiChange(dpi)}
-                        className={`rounded px-2 py-1.5 text-xs font-mono tabular-nums transition-colors whitespace-nowrap cursor-pointer ${
+                        className={`rounded px-1.5 py-1.5 text-xs font-mono tabular-nums transition-colors whitespace-nowrap cursor-pointer ${
                           printConfig.dpi === dpi
                             ? 'bg-[#FBF9F5] text-[#1C1917] shadow-xs font-medium'
                             : 'text-[#57534E] hover:text-[#1C1917]'
@@ -495,11 +502,13 @@ export default function App() {
                     ))}
                   </div>
                   <p className="text-[11px] text-[#78716C] leading-relaxed">
-                    {printConfig.dpi === 150
-                      ? 'Ultra-high detail (23,917 × 14,764 px). Exported as 3 or 4 vertical panels.'
-                      : printConfig.dpi === 100
-                        ? 'Recommended wall-canvas target (15,945 × 9,843 px front face).'
-                        : 'Fast wide-format RIP target (11,480 × 7,087 px front face).'}
+                    {printConfig.dpi === 300
+                      ? 'Master print density (47,835 × 29,528 px front face). Exports 1-sheet streamed JPEG or 8 roll panels (4×2).'
+                      : printConfig.dpi === 150
+                        ? 'Ultra-high detail (23,917 × 14,764 px front face). Streamed JPEG 1-sheet or multi-panel.'
+                        : printConfig.dpi === 100
+                          ? 'Recommended wall-canvas target (15,945 × 9,843 px front face).'
+                          : 'Fast wide-format RIP target (11,480 × 7,087 px front face).'}
                   </p>
                 </div>
 
@@ -566,20 +575,30 @@ export default function App() {
                   <span className="block text-xs font-medium text-[#44403C]">
                     Printer Roll Tiling
                   </span>
-                  <div className="grid grid-cols-3 gap-1 rounded-md border border-[#DFD8CA] bg-[#EFECE4] p-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 rounded-md border border-[#DFD8CA] bg-[#EFECE4] p-1">
                     {(
                       [
                         [1, '1 Sheet'],
-                        [3, '3 Panels'],
-                        [4, '4 Panels'],
+                        [3, '3 Strips'],
+                        [4, '4 Strips'],
+                        [8, '8 Panels'],
                       ] as [PanelCount, string][]
                     ).map(([count, label]) => (
                       <button
                         key={count}
                         type="button"
-                        disabled={printConfig.dpi === 150 && count === 1}
-                        onClick={() => setPrintConfig((c) => ({ ...c, panelCount: count }))}
-                        className={`rounded px-2 py-1.5 text-xs font-medium transition-colors whitespace-nowrap disabled:opacity-40 cursor-pointer ${
+                        onClick={() =>
+                          setPrintConfig((c) => {
+                            if (c.dpi === 300 && c.format === 'png' && count !== 8) {
+                              return { ...c, panelCount: count, format: 'jpeg' };
+                            }
+                            if (c.dpi === 150 && c.format === 'png' && count === 1) {
+                              return { ...c, panelCount: count, format: 'jpeg' };
+                            }
+                            return { ...c, panelCount: count };
+                          })
+                        }
+                        className={`rounded px-1.5 py-1.5 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                           printConfig.panelCount === count
                             ? 'bg-[#FBF9F5] text-[#1C1917] shadow-xs'
                             : 'text-[#57534E] hover:text-[#1C1917]'
@@ -635,20 +654,32 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-[#44403C]">File Format</span>
                     <div className="inline-flex items-center gap-1 rounded border border-[#DFD8CA] bg-[#EFECE4] p-0.5">
-                      {(['jpeg', 'png'] as const).map((fmt) => (
-                        <button
-                          key={fmt}
-                          type="button"
-                          onClick={() => setPrintConfig((c) => ({ ...c, format: fmt }))}
-                          className={`rounded px-2.5 py-1 text-[11px] font-mono uppercase transition-colors cursor-pointer ${
-                            printConfig.format === fmt
-                              ? 'bg-[#FBF9F5] text-[#1C1917] shadow-xs'
-                              : 'text-[#57534E] hover:text-[#1C1917]'
-                          }`}
-                        >
-                          {fmt}
-                        </button>
-                      ))}
+                      {(['jpeg', 'png'] as const).map((fmt) => {
+                        const pngBlocked =
+                          fmt === 'png' &&
+                          ((printConfig.dpi === 300 && printConfig.panelCount !== 8) ||
+                            (printConfig.dpi === 150 && printConfig.panelCount === 1));
+                        return (
+                          <button
+                            key={fmt}
+                            type="button"
+                            disabled={pngBlocked}
+                            title={
+                              pngBlocked
+                                ? 'Switch to 8 Panels (4×2) for lossless PNG at this DPI, or use JPEG for single-sheet export.'
+                                : undefined
+                            }
+                            onClick={() => setPrintConfig((c) => ({ ...c, format: fmt }))}
+                            className={`rounded px-2.5 py-1 text-[11px] font-mono uppercase transition-colors disabled:opacity-40 cursor-pointer ${
+                              printConfig.format === fmt
+                                ? 'bg-[#FBF9F5] text-[#1C1917] shadow-xs'
+                                : 'text-[#57534E] hover:text-[#1C1917]'
+                            }`}
+                          >
+                            {fmt}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -906,7 +937,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-2 py-3.5">
                 <dt className="font-medium text-[#57534E]">Print Sheet (with 40 mm wrap)</dt>
                 <dd className="font-mono tabular-nums text-[#1C1917]">
-                  4130 × 2580 mm · 16,260 × 10,157 px at 100 DPI (or 15,945 × 9,843 px at 0 mm)
+                  4130 × 2580 mm · 48,780 × 30,472 px at 300 DPI (or 47,835 × 29,528 px at 0 mm)
                 </dd>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-2 py-3.5">
