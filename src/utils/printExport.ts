@@ -479,9 +479,11 @@ export async function exportPrintSheet(
   }
 
   const BAND_H = 256; // multiple of 16 for YCbCr 4:2:0 MCUs
-  const CHUNK_W = 4096;
+  const CHUNK_W = 8192;
   const bandRgba = new Uint8Array(sheetWidthPx * BAND_H * 4);
   const chunkCanvas = document.createElement('canvas');
+  chunkCanvas.width = Math.min(CHUNK_W, sheetWidthPx);
+  chunkCanvas.height = BAND_H;
   const chunkCtx = chunkCanvas.getContext('2d', { willReadFrequently: true });
   if (!chunkCtx) throw new Error('Unable to initialize band streaming canvas');
 
@@ -495,15 +497,12 @@ export async function exportPrintSheet(
       const targetBuf =
         bandHeight === BAND_H ? bandRgba : new Uint8Array(sheetWidthPx * bandHeight * 4);
 
-      if (chunkCanvas.height !== bandHeight) {
+      if (chunkCanvas.height < bandHeight) {
         chunkCanvas.height = bandHeight;
       }
 
       for (let chunkX = 0; chunkX < sheetWidthPx; chunkX += CHUNK_W) {
         const curChunkW = Math.min(CHUNK_W, sheetWidthPx - chunkX);
-        if (chunkCanvas.width !== curChunkW) {
-          chunkCanvas.width = curChunkW;
-        }
         chunkCtx.imageSmoothingEnabled = true;
         chunkCtx.imageSmoothingQuality = 'high';
 
